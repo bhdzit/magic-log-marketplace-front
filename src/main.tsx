@@ -1,14 +1,12 @@
 
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router";
-import App from "./App";
+import { BrowserRouter } from "react-router";
+import { FeaturesRoutes } from "./features/routes";
 
 const root = document.getElementById("root");
 
 ReactDOM.createRoot(root!).render(
   <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<App />} />
-    </Routes>
+      <FeaturesRoutes></FeaturesRoutes>
   </BrowserRouter>
 );
