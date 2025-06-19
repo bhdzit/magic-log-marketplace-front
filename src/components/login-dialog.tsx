@@ -2,20 +2,50 @@ import { FormField } from "./form/form-field";
 import { FormProvider, useForm, type UseFormReturn } from "react-hook-form";
 import { FormPasswordField } from "./form/form-possword-field";
 import { useDialog } from "../hooks/use-dialog";
-import { DIALOGS_NAME } from "@/utils/enums";
+import { DIALOGS_NAME, ERROR } from "@/utils/enums";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { useEffect } from "react";
+import * as jose from "jose";
+import { useAuth } from "@/hooks/use-auth";
 type FormData = {
   email: string;
   password: string;
 };
 
 export function LoginDialog() {
-  const { closeDialog } = useDialog();
+  const { closeDialog, isOpen } = useDialog();
+  const { setUserData } = useAuth();
 
-  function onSubmit(data: FormData) {
-    console.log(data);
-    closeDialog(DIALOGS_NAME.LOGIN_DIALOG);
+  async function onSubmit(body: FormData) {
+    await axios
+      .post<{ access_token: string }>(
+        `${import.meta.env.VITE_API_URL}/users/login`,
+        body
+      )
+      .then(async ({ data }) => {
+        const { payload } = await jose.jwtVerify(
+          data.access_token,
+          new TextEncoder().encode(import.meta.env.VITE_SECRET)
+        );
+        localStorage.setItem("token", data.access_token);
+        localStorage.setItem("userData", JSON.stringify({ ...payload }));
+        setUserData(payload as { email: string });
+        closeDialog(DIALOGS_NAME.LOGIN_DIALOG);
+        toast("SE INICIO SESSION CORRECTAMENTE", { type: "success" });
+      })
+      .catch(() => {
+        methods.setError("password", {
+          message: ERROR.INCORRECT_LOGIN_PARAMS,
+        });
+        toast(ERROR.SOMETHING_WENTH_RONG, { type: "error" });
+      });
   }
   const methods: UseFormReturn<FormData> = useForm<FormData>();
+
+  useEffect(() => {
+    methods.reset();
+  }, [isOpen(DIALOGS_NAME.LOGIN_DIALOG)]);
 
   return (
     <div>
