@@ -3,6 +3,9 @@ import { FormProvider, useForm, type UseFormReturn } from "react-hook-form";
 import { FormPasswordField } from "./form/form-possword-field";
 import { useDialog } from "../hooks/use-dialog";
 import { DIALOGS_NAME, ERROR } from "@/utils/enums";
+import axios from "axios";
+import { useEffect } from "react";
+import { toast } from "react-toastify";
 
 type FormData = {
   email: string;
@@ -11,17 +14,35 @@ type FormData = {
 };
 
 export function SigupDialog() {
-  const { closeDialog, openDialog } = useDialog();
+  const { closeDialog, openDialog, isOpen } = useDialog();
 
-  function onSubmit(data: FormData) {
+  async function onSubmit(data: FormData) {
     const { password, confirmarPassword } = data;
     if (password != confirmarPassword)
       methods.setError("confirmarPassword", {
         message: ERROR.PASSWORD_NOT_MATCH,
       });
-    closeDialog(DIALOGS_NAME.SINGUP_DIALOG);
+
+    await axios
+      .post(`${import.meta.env.VITE_API_URL}/users/singup`, data)
+      .then(() => {
+        closeDialog(DIALOGS_NAME.SINGUP_DIALOG);
+        toast("USUARIO CREADO CORRECTAMENTE", { type: "success" });
+      })
+      .catch((e) => {
+        if (e.status === 409) {
+          methods.setError("email", {
+            message: ERROR.USER_EXIST,
+          });
+          toast("PARECE QUE ALGO SALIO MAL", { type: "error" });
+        }
+      });
   }
   const methods: UseFormReturn<FormData> = useForm<FormData>();
+
+  useEffect(() => {
+    methods.reset();
+  }, [isOpen(DIALOGS_NAME.SINGUP_DIALOG)]);
 
   return (
     <div className="">
